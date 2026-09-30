@@ -23,10 +23,9 @@ DATA_URL = "https://raw.githubusercontent.com/happykth/data/main/kobis_daily.csv
 
 @st.cache_data
 def load_data():
-    # 1년치(365일) 일별 박스오피스 10위권 기록
     df = pd.read_csv(DATA_URL)
 
-    # 날짜 열을 진짜 날짜로 변환
+    # 날짜를 진짜 날짜로 변환
     df["날짜"] = pd.to_datetime(
         df["날짜"],
         format="%Y%m%d"
@@ -145,21 +144,18 @@ st.caption(
 # ─────────────────────────────────────────────
 st.header("3. 날짜별 10위권 일관객 합계")
 
-# 날짜별로 그날 10위권 영화의 일관객을 모두 더합니다.
 daily_total = (
     df.groupby("날짜", as_index=False)["일관객"]
     .sum()
     .sort_values("날짜")
 )
 
-# 일관객 합계가 가장 큰 날 3일을 찾습니다.
 top3_days = (
     daily_total
     .nlargest(3, "일관객")
     .sort_values("날짜")
 )
 
-# 영역 그래프를 만듭니다.
 fig3 = px.area(
     daily_total,
     x="날짜",
@@ -170,7 +166,6 @@ fig3 = px.area(
     },
 )
 
-# 마우스를 올렸을 때 날짜와 합계 관객 수를 보여줍니다.
 fig3.update_traces(
     hovertemplate=(
         "날짜 %{x|%Y-%m-%d}"
@@ -179,7 +174,6 @@ fig3.update_traces(
     )
 )
 
-# 합계가 가장 큰 3일을 그래프 위에 표시합니다.
 for _, row in top3_days.iterrows():
     fig3.add_annotation(
         x=row["날짜"],
@@ -201,23 +195,54 @@ st.caption(
 
 
 # ─────────────────────────────────────────────
-# 그래프 4
+# 그래프 4. 영화별 일관객 합계 TOP 10
 # ─────────────────────────────────────────────
-st.header("4. 그래프 4")
+st.header("4. 영화별 일관객 합계 TOP 10")
 
-st.caption("여기에 네 번째 그래프를 추가하세요.")
-
-st.caption(
-    "이 그래프로 알 수 있는 것: __________________________________"
+movie_summary = (
+    df.groupby("영화명")
+    .agg(
+        일관객합계=("일관객", "sum"),
+        일수=("날짜", "nunique"),
+    )
+    .sort_values(
+        "일관객합계",
+        ascending=False,
+    )
+    .head(10)
+    .reset_index()
 )
 
+movie_summary = movie_summary.sort_values(
+    "일관객합계",
+    ascending=True,
+)
 
-# ─────────────────────────────────────────────
-# 그래프 5
-# ─────────────────────────────────────────────
-st.header("5. 그래프 5")
+fig4 = px.bar(
+    movie_summary,
+    x="일관객합계",
+    y="영화명",
+    orientation="h",
+    labels={
+        "일관객합계": "일관객 합계",
+        "영화명": "영화명",
+    },
+)
 
-st.caption("여기에 다섯 번째 그래프를 추가하세요.")
+fig4.update_traces(
+    customdata=movie_summary["일수"],
+    hovertemplate=(
+        "영화 %{y}"
+        "<br>일관객 합계 %{x:,}명"
+        "<br>10위권에 든 날수 %{customdata}일"
+        "<extra></extra>"
+    )
+)
+
+st.plotly_chart(
+    fig4,
+    width="stretch",
+)
 
 st.caption(
     "이 그래프로 알 수 있는 것: __________________________________"
