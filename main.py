@@ -25,7 +25,6 @@ DATA_URL = "https://raw.githubusercontent.com/happykth/data/main/kobis_daily.csv
 def load_data():
     df = pd.read_csv(DATA_URL)
 
-    # 날짜를 진짜 날짜로 변환
     df["날짜"] = pd.to_datetime(
         df["날짜"],
         format="%Y%m%d"
@@ -241,6 +240,82 @@ fig4.update_traces(
 
 st.plotly_chart(
     fig4,
+    width="stretch",
+)
+
+st.caption(
+    "이 그래프로 알 수 있는 것: __________________________________"
+)
+
+
+# ─────────────────────────────────────────────
+# 그래프 5. 월 × 요일별 일관객 합계 히트맵
+# ─────────────────────────────────────────────
+st.header("5. 월 × 요일별 일관객 합계")
+
+# 날짜에서 월과 요일 추출
+heatmap_df = df.copy()
+
+heatmap_df["월"] = heatmap_df["날짜"].dt.month
+
+weekday_order = [
+    "월요일",
+    "화요일",
+    "수요일",
+    "목요일",
+    "금요일",
+    "토요일",
+    "일요일",
+]
+
+heatmap_df["요일"] = (
+    heatmap_df["날짜"]
+    .dt.dayofweek
+    .map(dict(enumerate(weekday_order)))
+)
+
+# 월 × 요일별 일관객 합계
+monthly_weekday = (
+    heatmap_df
+    .groupby(["월", "요일"], as_index=False)["일관객"]
+    .sum()
+)
+
+# 히트맵용 표 형태로 변환
+heatmap_pivot = (
+    monthly_weekday
+    .pivot(
+        index="월",
+        columns="요일",
+        values="일관객",
+    )
+    .reindex(columns=weekday_order)
+)
+
+fig5 = px.imshow(
+    heatmap_pivot,
+    labels={
+        "x": "요일",
+        "y": "월",
+        "color": "일관객 합계",
+    },
+    x=weekday_order,
+    y=heatmap_pivot.index,
+    text_auto=True,
+    aspect="auto",
+    color_continuous_scale="Blues",
+)
+
+fig5.update_traces(
+    hovertemplate=(
+        "%{y}월 %{x}"
+        "<br>일관객 합계 %{z:,}명"
+        "<extra></extra>"
+    )
+)
+
+st.plotly_chart(
+    fig5,
     width="stretch",
 )
 
